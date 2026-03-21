@@ -1,0 +1,49 @@
+# ==========================================
+# Nexus-Ops Projesi Kurumsal .gitignore
+# ==========================================
+
+# 🍎 macOS Sistem Dosyaları (M3 Pro / Apple Silicon)
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+# 💻 IDE ve Editörler (PyCharm, VSCode)
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 🐍 Python ve Sanal Ortamlar
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+.pytest_cache/
+
+# 🏗️ Terraform (Altyapı Kodları)
+# SADECE kodlar gitmeli, state ve gizli dosyalar ASLA gitmemeli!
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.tfstate.lock.info
+
+# 🐳 Docker ve Yerel Veriler
+# Jenkins, Kafka veya OpenSearch verilerinin GitHub'a gitmesini engeller
+volume/
+data/
+logs/
+*.log
+
+# 🛠️ İşletim Sistemi ve Diğer Çöpler
+Thumbs.db

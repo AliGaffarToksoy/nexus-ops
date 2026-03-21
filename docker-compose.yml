@@ -1,0 +1,60 @@
+name: nexus-ops
+
+services:
+  # 1. CI/CD Otomasyon Merkezi (M3 Pro Uyumlu LTS sürüm)
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: nexus-jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_data:/var/jenkins_home
+    restart: unless-stopped
+
+  # 2. Veri Otobanı: Apache Kafka (Resmi İmaj, KRaft Modu, Native ARM64)
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: nexus-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    restart: unless-stopped
+
+  # 3. Veri Depolama ve Arama: OpenSearch (Elasticsearch'ün açık kaynak alternatifi)
+  opensearch:
+    image: opensearchproject/opensearch:latest
+    container_name: nexus-opensearch
+    environment:
+      - discovery.type=single-node
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - DISABLE_SECURITY_PLUGIN=true
+    ports:
+      - "9200:9200"
+    restart: unless-stopped
+
+  # 4. Veri Görselleştirme: OpenSearch Dashboards (Kibana alternatifi)
+  dashboards:
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: nexus-dashboards
+    ports:
+      - "5601:5601"
+    environment:
+      - OPENSEARCH_HOSTS=["http://opensearch:9200"]
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    depends_on:
+      - opensearch
+    restart: unless-stopped
+
+volumes:
+  jenkins_data:
