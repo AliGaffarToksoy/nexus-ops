@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - [%(levelname)s] %(
 KAFKA_BROKER = 'localhost:9092'
 TOPIC_NAME = 'system-logs'
 OPENSEARCH_HOST = 'localhost'
-OPENSEARCH_PORT = 9200
+OPENSEARCH_PORT = 29092
 
 # OpenSearch Bağlantısı (Lokal test için SSL ve şifreleme kapalı)
 client = OpenSearch(

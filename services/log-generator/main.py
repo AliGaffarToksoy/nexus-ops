@@ -10,7 +10,7 @@ from datetime import datetime
 fake = Faker()
 
 # Kafka Producer Ayarları (localhost üzerinden bağlanıyoruz)
-KAFKA_BROKER = 'localhost:9092'
+KAFKA_BROKER = 'localhost:29092'
 TOPIC_NAME = 'system-logs'
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
