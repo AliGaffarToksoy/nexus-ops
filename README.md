@@ -164,6 +164,94 @@ This demonstrates an event-driven architecture where producers continuously send
 <img width="1512" height="949" alt="Ekran Resmi 2026-03-23 15 52 27" src="https://github.com/user-attachments/assets/1493a2da-a028-4562-a5d7-08b52eba5818" />
 
 
+---
+
+## ☸️ Cloud-Native Kubernetes (k8s) Deployment
+
+The project is extended into a fully **cloud-native, production-style architecture** using Kubernetes.  
+All components are deployed into an isolated namespace with internal service discovery and scalable orchestration.
+
+---
+
+### 🧱 1. Create the Dedicated Namespace
+
+```
+kubectl apply -f k8s/namespace.yaml
+```
+
+This creates an isolated environment (`nexus-ops`) where all resources will be deployed and managed independently.
+
+---
+
+### 📡 2. Deploy Core Infrastructure (Data & Messaging Layer)
+
+```
+kubectl apply -f k8s/zookeeper.yaml
+kubectl apply -f k8s/kafka.yaml
+kubectl apply -f k8s/opensearch.yaml
+kubectl apply -f k8s/opensearch-dashboards.yaml
+```
+
+This step provisions:
+
+- **Zookeeper** → Kafka cluster coordination  
+- **Apache Kafka** → Distributed event streaming  
+- **OpenSearch** → Log indexing and storage  
+- **Dashboards** → Visualization layer  
+
+All services communicate internally within the Kubernetes cluster.
+
+---
+
+### 🔍 3. Verify Cluster Status
+
+```
+kubectl get pods -n nexus-ops
+```
+
+Expected result:
+
+- All pods should be in **Running** state  
+- Services should be properly initialized  
+- No crash loops or pending states  
+
+---
+
+### ⚙️ 4. (Optional) Deploy Application Services
+
+If you have Kubernetes manifests for microservices:
+
+```
+kubectl apply -f k8s/log-generator.yaml
+kubectl apply -f k8s/log-indexer.yaml
+```
+
+This enables full pipeline execution directly inside Kubernetes.
+
+---
+
+### 🌐 5. Access Services (Port Forward)
+
+```
+kubectl port-forward svc/opensearch-dashboards 5601:5601 -n nexus-ops
+```
+
+Then open:
+
+```
+http://localhost:5601
+```
+
+---
+
+### 🧠 What This Phase Demonstrates
+
+- Kubernetes-based service orchestration  
+- Namespace isolation  
+- Internal service networking  
+- Scalable, container-native deployment  
+- Transition from local Docker setup → cloud-native architecture  
+
 
 ---
 
@@ -175,6 +263,7 @@ This ensures isolated, reproducible, and scalable environments, enabling consist
 
 
 ---
+
 
 ## 🚀 Running the Project Locally
 

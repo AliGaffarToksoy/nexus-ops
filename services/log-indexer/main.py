@@ -1,53 +1,65 @@
 import json
-import logging
+import uuid
+import boto3
 from kafka import KafkaConsumer
 from opensearchpy import OpenSearch
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - [%(levelname)s] %(message)s')
-
-KAFKA_BROKER = 'localhost:9092'
-TOPIC_NAME = 'system-logs'
-OPENSEARCH_HOST = 'localhost'
-OPENSEARCH_PORT = 29092
-
-# OpenSearch Bağlantısı (Lokal test için SSL ve şifreleme kapalı)
-client = OpenSearch(
-    hosts=[{'host': OPENSEARCH_HOST, 'port': OPENSEARCH_PORT}],
-    http_compress=True,
-    use_ssl=False,
-    verify_certs=False,
-    ssl_assert_hostname=False,
-    ssl_show_warn=False
+# --- 1. KAFKA AYARLARI (DEDEKTİF MODU) ---
+consumer = KafkaConsumer(
+    bootstrap_servers=['127.0.0.1:29092'],
+    auto_offset_reset='earliest',
+    group_id=f"nexus-cloud-group-{uuid.uuid4()}"
 )
 
+# KAFKA'NIN RÖNTGENİNİ ÇEKİYORUZ:
+aktif_topicler = consumer.topics()
+print(f"🔍 Kafka'daki Mevcut Odalar (Topic'ler): {aktif_topicler}")
 
-def start_indexing():
-    consumer = KafkaConsumer(
-        TOPIC_NAME,
-        bootstrap_servers=[KAFKA_BROKER],
-        auto_offset_reset='latest',  # Sadece yeni gelen logları al
-        enable_auto_commit=True,
-        group_id='nexus-indexer-group',
-        value_deserializer=lambda x: json.loads(x.decode('utf-8'))
-    )
+DOGRU_TOPIC_ADI = 'system-logs'
+consumer.subscribe([DOGRU_TOPIC_ADI])
 
-    logging.info(f"📡 Kafka dinleniyor ({TOPIC_NAME}) ve OpenSearch'e aktarılıyor...")
+print(f"🎧 '{DOGRU_TOPIC_ADI}' dinleniyor...")
+print(f"⚠️ (Eğer üstteki listede bu isim yoksa, Üretici başka bir odaya yazıyor demektir!)")
 
+# --- 2. OPENSEARCH VE S3 AYARLARI ---
+os_client = OpenSearch(
+    hosts=[{'host': 'localhost', 'port': 9200}], # 127.0.0.1 yerine localhost'u geri koyduk
+    http_auth=('admin', 'NexusOps@2026!'),
+    use_ssl=True, verify_certs=False, ssl_show_warn=False
+)
+
+s3_client = boto3.client(
+    's3', endpoint_url='http://localhost:4566', # Burayı da localhost'a çektik
+    aws_access_key_id='test', aws_secret_access_key='test', region_name='us-east-1'
+)
+BUCKET_NAME = 'nexus-logs-bucket'
+
+# --- 4. GÜVENLİ VERİ AKIŞI DÖNGÜSÜ ---
+for message in consumer:
     try:
-        for message in consumer:
-            log_data = message.value
+        raw_data = message.value.decode('utf-8')
+        log_id = str(uuid.uuid4())
 
-            # Veriyi OpenSearch'te 'nexus-logs' endeksine yaz
-            response = client.index(
-                index='nexus-logs',
-                body=log_data
-            )
-            logging.info(f"💾 OpenSearch'e yazıldı | Servis: {log_data['service']} | Seviye: {log_data['level']}")
-    except KeyboardInterrupt:
-        logging.info("🛑 Indexer durduruldu.")
-    finally:
-        consumer.close()
+        try:
+            log_data = json.loads(raw_data)
+        except:
+            log_data = {"message": raw_data}
 
+            # A) OpenSearch'e Yaz (Eğer ulaşılamazsa sessizce geçmesini söyledik)
+        try:
+            os_client.index(index="nexus-logs-index", body=log_data)
+            os_status = "✅"
+        except Exception as os_e:
+            os_status = f"❌ (OS Hata: {os_e})"
 
-if __name__ == '__main__':
-    start_indexing()
+        # B) S3'e Yedekle
+        try:
+            s3_client.put_object(Bucket=BUCKET_NAME, Key=f"logs/backup_{log_id}.json", Body=json.dumps(log_data))
+            s3_status = "✅"
+        except Exception as s3_e:
+            s3_status = f"❌ (S3 Hata: {s3_e})"
+
+        print(f"Log İşlendi: OpenSearch {os_status} | S3 Bulut {s3_status} | ID: {log_id[:8]}")
+
+    except Exception as e:
+        print(f"❌ Beklenmeyen Hata: {e}")
