@@ -3,7 +3,6 @@
 Nexus-Ops is an **end-to-end DevOps and Data Engineering platform** that simulates a production-grade real-time data pipeline, autonomous CI/CD processes, and containerized microservice orchestration.
 
 The system demonstrates how modern organizations ingest, process, index, and visualize high-volume log data in real time while maintaining a fully automated deployment workflow.
-
 ---
 
 ## 🌍 Overview
